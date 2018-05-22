@@ -56,7 +56,7 @@ class OAuth {
     return Base64.getEncoder().encodeToString(signedBytes);
   }
 
-  String genUrl(String target) {
+  String generateRequestTokenUrl(String target ) {
 
     TreeMap<String, String> map = new TreeMap<>();
     map.put("oauth_callback", oauthEncode(CALLBACK_TARGET));
@@ -88,4 +88,7 @@ class OAuth {
     return target + "?" + unencBaseString3 + "&" + signatureParam;
   }
 
+  String generateAccessTokenUrl(String target ) {
+    return generateRequestTokenUrl(target);
+  }
 }
