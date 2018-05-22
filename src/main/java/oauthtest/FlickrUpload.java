@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Properties;
+import java.util.Scanner;
 import java.util.logging.Logger;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
@@ -30,10 +31,16 @@ public class FlickrUpload {
       auth.parseAndStoreResult(result);
 
       // Open authorization link on flickr
-      String authLink = "https://www.flickr.com/services/oauth/authorize?perms=delete&" + "oauth_token="+auth.getAuthToken();
+      String authLink =
+          "https://www.flickr.com/services/oauth/authorize?perms=delete&" + "oauth_token=" + auth
+              .getAuthToken();
       Logger.getGlobal().info(authLink);
 
-      Logger.getGlobal().info(auth.generateAccessTokenUrl(ACCESS_TOKEN_URL, "123-456-789"));
+      url = auth.generateAccessTokenUrl(ACCESS_TOKEN_URL, new Scanner(System.in).next());
+      Logger.getGlobal().info(url);
+
+      result = executeUrl(url);
+      auth.parseAndStoreResult(result);
 
     } catch (IOException e) {
       Logger.getGlobal().severe(e.getMessage());

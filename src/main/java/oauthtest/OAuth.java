@@ -21,7 +21,7 @@ class OAuth {
   private static final String HMAC_ALGORITHM = "HMAC-SHA1";
   private static final String CALLBACK_TARGET = "oob";
 
-  private Map map = new HashMap();
+  private Map accessMap = new HashMap();
 
   OAuth(String apiKey, String signatureKey) {
     this.apiKey = apiKey;
@@ -94,8 +94,8 @@ class OAuth {
 
   String generateAccessTokenUrl(String target, String verifier) {
     TreeMap<String, String> map = getParameterMap();
-    map.put("oauth_token", getAuthToken());
-    map.put("oauth_verifier", verifier);
+    map.put("oauth_token", oauthEncode(getAuthToken()));
+    map.put("oauth_verifier", oauthEncode(verifier));
 
     return generateTokenUrl(target, map, signatureKey + getAuthTokenSecret());
   }
@@ -112,15 +112,19 @@ class OAuth {
     String[] pairs = result.split("&");
     for (String pair : pairs) {
       String[] kv = pair.split("=");
-      map.put(kv[0], kv[1]);
+      accessMap.put(kv[0], kv[1]);
     }
   }
 
   String getAuthToken() {
-    return map.get("oauth_token").toString();
+    return accessMap.get("oauth_token").toString();
   }
 
   String getAuthTokenSecret() {
-    return map.get("oauth_token_secret").toString();
+    return accessMap.get("oauth_token_secret").toString();
+  }
+
+  Map getAccessMap() {
+    return accessMap;
   }
 }
