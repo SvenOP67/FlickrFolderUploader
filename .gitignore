@@ -1,45 +1,24 @@
-*.class
-
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
-*.jar
-*.war
-*.ear
-
-# exclude jar for gradle wrapper
-!**/gradle/wrapper/*.jar
-
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-
-# build files
-**/target
-target
-.target
-build
-.metadata
+out/
 bin/
-*.tmp
-*.bak
-*.swp
-*~.nib
-local.properties
-.settings/
-.loadpath
-.recommenders
-
-# ide
-.gradle
-.idea/
-.swagger-codegen/
+build/
 target/
 .classpath
+/.gradle/
+mycrontab
 .project
+.settings/
+.idea/
+.swagger-codegen/
+*.class
 *.iws
 *.iml
 *.ipr
-*.log
-out/
-tools/FriendlyFire/example.log*
+
+# Package Files #
+*.jar
+!/lib/*.jar
+
+# exclude jar for gradle wrapper
+!gradle/wrapper/*.jar
+!tools/**/gradle/wrapper/*.jar
+settings.json
