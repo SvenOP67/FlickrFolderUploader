@@ -1,6 +1,6 @@
 package oauthtest;
 
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.net.URLEncoder;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -14,6 +14,10 @@ import javax.crypto.spec.SecretKeySpec;
 
 class OAuth {
 
+  private static final String OAUTH_TOKEN_PARAM = "oauth_token";
+  private static final String URL_OAUTH_ACCESS_TOKEN = "https://www.flickr.com/services/oauth/access_token";
+  private static final String URL_OAUTH_REQUEST_TOKEN = "https://www.flickr.com/services/oauth/request_token";
+  private static final String URL_SERVICES_REST = "https://api.flickr.com/services/rest";
   private String apiKey;
   private String signatureKey;
 
@@ -21,11 +25,21 @@ class OAuth {
   private static final String HMAC_ALGORITHM = "HMAC-SHA1";
   private static final String CALLBACK_TARGET = "oob";
 
-  private Map accessMap = new HashMap();
+  private Map<String, String> accessMap = new HashMap<>();
 
   OAuth(String apiKey, String signatureKey) {
     this.apiKey = apiKey;
     this.signatureKey = signatureKey;
+
+    String file = System.getProperty("user.home") + File.separator + "myfile.txt";
+    if(new File(file).exists()) {
+      try (FileReader reader = new FileReader(file)){
+        BufferedReader br = new BufferedReader(reader);
+        parseAndStoreResult(br.readLine());
+      } catch (IOException e) {
+        Logger.getGlobal().severe(e.getMessage());
+      }
+    }
   }
 
   private String oauthEncode(String input) {
@@ -58,7 +72,7 @@ class OAuth {
     return Base64.getEncoder().encodeToString(signedBytes);
   }
 
-  String generateTokenUrl(String target, TreeMap<String, String> map, String secret) {
+  private String generateTokenUrl(String target, TreeMap<String, String> map, String secret) {
 
     StringBuilder unencBaseString3 = new StringBuilder();
     int i = 1;
@@ -92,31 +106,31 @@ class OAuth {
     return map;
   }
 
-  String generateAccessTokenUrl(String target, String verifier) {
+  String generateAccessTokenUrl( String verifier) {
     TreeMap<String, String> map = getParameterMap();
-    map.put("oauth_token", oauthEncode(getAuthToken()));
+    map.put(OAUTH_TOKEN_PARAM, oauthEncode(getAuthToken()));
     map.put("oauth_verifier", oauthEncode(verifier));
 
-    return generateTokenUrl(target, map, signatureKey + getAuthTokenSecret());
+    return generateTokenUrl(URL_OAUTH_ACCESS_TOKEN, map, signatureKey + getAuthTokenSecret());
   }
 
-  String generateRequestTokenUrl(String target) {
+  String generateRequestTokenUrl() {
     TreeMap<String, String> map = getParameterMap();
     map.put("oauth_callback", oauthEncode(CALLBACK_TARGET));
 
-    return generateTokenUrl(target, map, signatureKey);
+    return generateTokenUrl(URL_OAUTH_REQUEST_TOKEN, map, signatureKey);
   }
 
 
-  String generateRestApiUrl(String target, HashMap<String, String> methodMap) {
+  String generateRestApiUrl( HashMap<String, String> methodMap) {
     TreeMap<String, String> map = getParameterMap();
-    map.put("oauth_token", oauthEncode(getAuthToken()));
+    map.put(OAUTH_TOKEN_PARAM, oauthEncode(getAuthToken()));
 
     for (Map.Entry<String, String> entry : methodMap.entrySet()) {
       map.put(entry.getKey(), entry.getValue());
     }
 
-    return generateTokenUrl(target, map, signatureKey + getAuthTokenSecret());
+    return generateTokenUrl(URL_SERVICES_REST, map, signatureKey + getAuthTokenSecret());
   }
 
 
@@ -129,11 +143,11 @@ class OAuth {
   }
 
   String getAuthToken() {
-    return accessMap.get("oauth_token").toString();
+    return accessMap.get(OAUTH_TOKEN_PARAM);
   }
 
-  String getAuthTokenSecret() {
-    return accessMap.get("oauth_token_secret").toString();
+  private String getAuthTokenSecret() {
+    return accessMap.get("oauth_token_secret");
   }
 
   Map getAccessMap() {

@@ -1,78 +1,109 @@
 package oauthtest;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Scanner;
-import java.util.logging.Logger;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
 
+import java.io.*;
+import java.util.HashMap;
+import java.util.Properties;
+import java.util.Scanner;
+import java.util.logging.Logger;
+
 public class FlickrUpload {
 
-  private static final String REQUEST_TOKEN_URL = "https://www.flickr.com/services/oauth/request_token";
-  private static final String ACCESS_TOKEN_URL = "https://www.flickr.com/services/oauth/access_token";
+    private static final String USER_HOME = "user.home";
+    private static final String AUTH_STORE = "myfile.txt";
+    private static final String REST_METHOD_PARAM = "method";
 
-  public static void main(String[] args) {
-    try (FileInputStream input = new FileInputStream(
-        new File(System.getProperty("user.home") + File.separator + ".flickr"))) {
-      Properties prop = new Properties();
-      prop.load(input);
-      OAuth auth = new OAuth(prop.getProperty("API_KEY"), prop.getProperty("SIGNATURE_KEY"));
-      String url = auth.generateRequestTokenUrl(REQUEST_TOKEN_URL);
-      Logger.getGlobal().info(url);
+    public static void main(String[] args) {
+        try (FileInputStream input = new FileInputStream(
+                new File(System.getProperty(USER_HOME) + File.separator + ".flickr"))) {
+            Properties prop = new Properties();
+            prop.load(input);
+            OAuth auth = new OAuth(prop.getProperty("API_KEY"), prop.getProperty("SIGNATURE_KEY"));
 
-      String result = executeUrl(url);
-      auth.parseAndStoreResult(result);
+            String file = System.getProperty(USER_HOME) + File.separator + AUTH_STORE;
+            String url;
+            String result;
+            if (!new File(file).exists()) {
 
-      // Open authorization link on flickr
-      String authLink =
-          "https://www.flickr.com/services/oauth/authorize?perms=delete&" + "oauth_token=" + auth
-              .getAuthToken();
-      Logger.getGlobal().info(authLink);
+                url = auth.generateRequestTokenUrl();
+                Logger.getGlobal().info(url);
 
-      url = auth.generateAccessTokenUrl(ACCESS_TOKEN_URL, new Scanner(System.in).next());
-      Logger.getGlobal().info(url);
+                result = executeUrl(url);
+                auth.parseAndStoreResult(result);
 
-      result = executeUrl(url);
-      auth.parseAndStoreResult(result);
+                // Open authorization link on flickr
+                String authLink =
+                        "https://www.flickr.com/services/oauth/authorize?perms=delete&" + "oauth_token=" + auth
+                                .getAuthToken();
+                Logger.getGlobal().info(authLink);
 
-      HashMap<String, String> methodMap = new HashMap();
-      methodMap.put("method", "flickr.test.login");
-      methodMap.put("nojsoncallback", "1");
-      methodMap.put("format", "json");
+                url = auth.generateAccessTokenUrl(new Scanner(System.in).next());
+                Logger.getGlobal().info(url);
 
-      url = auth.generateRestApiUrl("https://api.flickr.com/services/rest", methodMap);
-      Logger.getGlobal().info(url);
+                result = executeUrl(url);
+                auth.parseAndStoreResult(result);
 
-      result = executeUrl(url);
+                storeAuthInFile(result);
+
+            }
+            String info = String.format("Account information %s", auth.getAccessMap().toString());
+            Logger.getGlobal().info(info);
+
+            HashMap<String, String> methodMap = new HashMap<>();
+            methodMap.put("nojsoncallback", "1");
+            methodMap.put("format", "json");
+
+            methodMap.put(REST_METHOD_PARAM, "flickr.test.login");
+            url = auth.generateRestApiUrl(methodMap);
+            Logger.getGlobal().info(url);
+            executeUrl(url);
+
+            methodMap.put(REST_METHOD_PARAM, "flickr.contacts.getList");
+            url = auth.generateRestApiUrl(methodMap);
+            Logger.getGlobal().info(url);
+            executeUrl(url);
+
+            methodMap.put(REST_METHOD_PARAM, "flickr.favorites.getList");
+            url = auth.generateRestApiUrl(methodMap);
+            Logger.getGlobal().info(url);
+            executeUrl(url);
 
 
-    } catch (IOException e) {
-      Logger.getGlobal().severe(e.getMessage());
+        } catch (IOException e) {
+            Logger.getGlobal().severe(e.getMessage());
+        }
+
+
     }
 
+    private static void storeAuthInFile(String result) {
+        String file;
+        file = System.getProperty(USER_HOME) + File.separator + AUTH_STORE;
+        if (!new File(file).exists()) {
+            try (FileWriter writer = new FileWriter(file)) {
+                writer.write(result);
+            } catch (IOException e) {
+                Logger.getGlobal().severe(e.getMessage());
+            }
+        }
+    }
 
-  }
+    private static String executeUrl(String url) throws IOException {
+        HttpClient client = HttpClientBuilder.create().build();
+        HttpGet get = new HttpGet(url);
 
-  private static String executeUrl(String url) throws IOException {
-    HttpClient client = HttpClientBuilder.create().build();
-    HttpGet get = new HttpGet(url);
+        HttpResponse response = client.execute(get);
+        String statusCode = Integer.toString(response.getStatusLine().getStatusCode());
+        Logger.getGlobal().info(statusCode);
 
-    HttpResponse response = client.execute(get);
-    Logger.getGlobal().info(Integer.toString(response.getStatusLine().getStatusCode()));
-
-    BufferedReader contentReader = new BufferedReader(
-        new InputStreamReader(response.getEntity().getContent()));
-    String result = contentReader.readLine();
-    Logger.getGlobal().info(result);
-    return result;
-  }
+        BufferedReader contentReader = new BufferedReader(
+                new InputStreamReader(response.getEntity().getContent()));
+        String result = contentReader.readLine();
+        Logger.getGlobal().info(result);
+        return result;
+    }
 }
