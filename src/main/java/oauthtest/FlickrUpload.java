@@ -33,7 +33,8 @@ public class FlickrUpload {
       String authLink = "https://www.flickr.com/services/oauth/authorize?perms=delete&" + "oauth_token="+auth.getAuthToken();
       Logger.getGlobal().info(authLink);
 
-      //      Logger.getGlobal().info(auth.generateAccessTokenUrl(ACCESS_TOKEN_URL));
+      Logger.getGlobal().info(auth.generateAccessTokenUrl(ACCESS_TOKEN_URL, "123-456-789"));
+
     } catch (IOException e) {
       Logger.getGlobal().severe(e.getMessage());
     }

@@ -58,15 +58,7 @@ class OAuth {
     return Base64.getEncoder().encodeToString(signedBytes);
   }
 
-  String generateRequestTokenUrl(String target) {
-
-    TreeMap<String, String> map = new TreeMap<>();
-    map.put("oauth_callback", oauthEncode(CALLBACK_TARGET));
-    map.put("oauth_consumer_key", apiKey);
-    map.put("oauth_nonce", String.valueOf(System.currentTimeMillis()));
-    map.put("oauth_signature_method", HMAC_ALGORITHM);
-    map.put("oauth_timestamp", String.valueOf(System.currentTimeMillis() / 1000));
-    map.put("oauth_version", "1.0");
+  String generateTokenUrl(String target, TreeMap<String, String> map, String secret) {
 
     StringBuilder unencBaseString3 = new StringBuilder();
     int i = 1;
@@ -90,9 +82,31 @@ class OAuth {
     return target + "?" + unencBaseString3 + "&" + signatureParam;
   }
 
-  String generateAccessTokenUrl(String target) {
-    return generateRequestTokenUrl(target);
+  private TreeMap<String, String> getParameterMap() {
+    TreeMap<String, String> map = new TreeMap<>();
+    map.put("oauth_consumer_key", apiKey);
+    map.put("oauth_nonce", String.valueOf(System.currentTimeMillis()));
+    map.put("oauth_signature_method", HMAC_ALGORITHM);
+    map.put("oauth_timestamp", String.valueOf(System.currentTimeMillis() / 1000));
+    map.put("oauth_version", "1.0");
+    return map;
   }
+
+  String generateAccessTokenUrl(String target, String verifier) {
+    TreeMap<String, String> map = getParameterMap();
+    map.put("oauth_token", getAuthToken());
+    map.put("oauth_verifier", verifier);
+
+    return generateTokenUrl(target, map, signatureKey + getAuthTokenSecret());
+  }
+
+  String generateRequestTokenUrl(String target) {
+    TreeMap<String, String> map = getParameterMap();
+    map.put("oauth_callback", oauthEncode(CALLBACK_TARGET));
+
+    return generateTokenUrl(target, map, signatureKey);
+  }
+
 
   void parseAndStoreResult(String result) {
     String[] pairs = result.split("&");
