@@ -26,14 +26,11 @@ public class FlickrUpload {
       String url = auth.generateRequestTokenUrl(REQUEST_TOKEN_URL);
       Logger.getGlobal().info(url);
 
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet get = new HttpGet(url);
+      String result = executeUrl(url);
+      auth.parseAndStoreResult(result);
 
-      HttpResponse response = client.execute(get);
-      Logger.getGlobal().info(String.valueOf(response.getStatusLine().getStatusCode()));
-
-      BufferedReader contentReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
-      Logger.getGlobal().info(contentReader.readLine());
+      Logger.getGlobal().info(auth.getAuthToken());
+      Logger.getGlobal().info(auth.getAuthTokenSecret());
 
       //      Logger.getGlobal().info(auth.generateAccessTokenUrl(ACCESS_TOKEN_URL));
     } catch (IOException e) {
@@ -41,5 +38,18 @@ public class FlickrUpload {
     }
 
 
+  }
+
+  private static String executeUrl(String url) throws IOException {
+    HttpClient client = HttpClientBuilder.create().build();
+    HttpGet get = new HttpGet(url);
+
+    HttpResponse response = client.execute(get);
+    Logger.getGlobal().info(String.valueOf(response.getStatusLine().getStatusCode()));
+
+    BufferedReader contentReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+    String result = contentReader.readLine();
+    Logger.getGlobal().info(result);
+    return result;
   }
 }

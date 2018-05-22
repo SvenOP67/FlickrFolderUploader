@@ -21,6 +21,8 @@ class OAuth {
   private static final String HMAC_ALGORITHM = "HMAC-SHA1";
   private static final String CALLBACK_TARGET = "oob";
 
+  private Map map = new HashMap();
+
   OAuth(String apiKey, String signatureKey) {
     this.apiKey = apiKey;
     this.signatureKey = signatureKey;
@@ -56,7 +58,7 @@ class OAuth {
     return Base64.getEncoder().encodeToString(signedBytes);
   }
 
-  String generateRequestTokenUrl(String target ) {
+  String generateRequestTokenUrl(String target) {
 
     TreeMap<String, String> map = new TreeMap<>();
     map.put("oauth_callback", oauthEncode(CALLBACK_TARGET));
@@ -88,7 +90,23 @@ class OAuth {
     return target + "?" + unencBaseString3 + "&" + signatureParam;
   }
 
-  String generateAccessTokenUrl(String target ) {
+  String generateAccessTokenUrl(String target) {
     return generateRequestTokenUrl(target);
+  }
+
+  void parseAndStoreResult(String result) {
+    String[] pairs = result.split("&");
+    for (String pair : pairs) {
+      String[] kv = pair.split("=");
+      map.put(kv[0], kv[1]);
+    }
+  }
+
+  String getAuthToken() {
+    return map.get("oauth_token").toString();
+  }
+
+  String getAuthTokenSecret() {
+    return map.get("oauth_token_secret").toString();
   }
 }
