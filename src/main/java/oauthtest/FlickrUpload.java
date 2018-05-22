@@ -29,8 +29,9 @@ public class FlickrUpload {
       String result = executeUrl(url);
       auth.parseAndStoreResult(result);
 
-      Logger.getGlobal().info(auth.getAuthToken());
-      Logger.getGlobal().info(auth.getAuthTokenSecret());
+      // Open authorization link on flickr
+      String authLink = "https://www.flickr.com/services/oauth/authorize?perms=delete&" + "oauth_token="+auth.getAuthToken();
+      Logger.getGlobal().info(authLink);
 
       //      Logger.getGlobal().info(auth.generateAccessTokenUrl(ACCESS_TOKEN_URL));
     } catch (IOException e) {
@@ -45,9 +46,10 @@ public class FlickrUpload {
     HttpGet get = new HttpGet(url);
 
     HttpResponse response = client.execute(get);
-    Logger.getGlobal().info(String.valueOf(response.getStatusLine().getStatusCode()));
+    Logger.getGlobal().info(Integer.toString(response.getStatusLine().getStatusCode()));
 
-    BufferedReader contentReader = new BufferedReader(new InputStreamReader(response.getEntity().getContent()));
+    BufferedReader contentReader = new BufferedReader(
+        new InputStreamReader(response.getEntity().getContent()));
     String result = contentReader.readLine();
     Logger.getGlobal().info(result);
     return result;
