@@ -21,6 +21,8 @@ class OAuth {
   private static final String HMAC_ALGORITHM = "HMAC-SHA1";
   private static final String CALLBACK_TARGET = "oob";
 
+  private Map accessMap = new HashMap();
+
   OAuth(String apiKey, String signatureKey) {
     this.apiKey = apiKey;
     this.signatureKey = signatureKey;
@@ -56,15 +58,7 @@ class OAuth {
     return Base64.getEncoder().encodeToString(signedBytes);
   }
 
-  String genUrl(String target) {
-
-    TreeMap<String, String> map = new TreeMap<>();
-    map.put("oauth_callback", oauthEncode(CALLBACK_TARGET));
-    map.put("oauth_consumer_key", apiKey);
-    map.put("oauth_nonce", String.valueOf(System.currentTimeMillis()));
-    map.put("oauth_signature_method", HMAC_ALGORITHM);
-    map.put("oauth_timestamp", String.valueOf(System.currentTimeMillis() / 1000));
-    map.put("oauth_version", "1.0");
+  String generateTokenUrl(String target, TreeMap<String, String> map, String secret) {
 
     StringBuilder unencBaseString3 = new StringBuilder();
     int i = 1;
@@ -82,10 +76,67 @@ class OAuth {
         REQUEST_VERB + "&" + oauthEncode(target) + "&" + oauthEncode(unencBaseString3.toString());
     Logger.getGlobal().info(url2Sign);
 
-    String signature = getSignature(signatureKey, url2Sign);
+    String signature = getSignature(secret, url2Sign);
     String signatureParam = "oauth_signature=" + oauthEncode(signature);
 
     return target + "?" + unencBaseString3 + "&" + signatureParam;
   }
 
+  private TreeMap<String, String> getParameterMap() {
+    TreeMap<String, String> map = new TreeMap<>();
+    map.put("oauth_consumer_key", apiKey);
+    map.put("oauth_nonce", String.valueOf(System.currentTimeMillis()));
+    map.put("oauth_signature_method", HMAC_ALGORITHM);
+    map.put("oauth_timestamp", String.valueOf(System.currentTimeMillis() / 1000));
+    map.put("oauth_version", "1.0");
+    return map;
+  }
+
+  String generateAccessTokenUrl(String target, String verifier) {
+    TreeMap<String, String> map = getParameterMap();
+    map.put("oauth_token", oauthEncode(getAuthToken()));
+    map.put("oauth_verifier", oauthEncode(verifier));
+
+    return generateTokenUrl(target, map, signatureKey + getAuthTokenSecret());
+  }
+
+  String generateRequestTokenUrl(String target) {
+    TreeMap<String, String> map = getParameterMap();
+    map.put("oauth_callback", oauthEncode(CALLBACK_TARGET));
+
+    return generateTokenUrl(target, map, signatureKey);
+  }
+
+
+  String generateRestApiUrl(String target, HashMap<String, String> methodMap) {
+    TreeMap<String, String> map = getParameterMap();
+    map.put("oauth_token", oauthEncode(getAuthToken()));
+
+    for (Map.Entry<String, String> entry : methodMap.entrySet()) {
+      map.put(entry.getKey(), entry.getValue());
+    }
+
+    return generateTokenUrl(target, map, signatureKey + getAuthTokenSecret());
+  }
+
+
+  void parseAndStoreResult(String result) {
+    String[] pairs = result.split("&");
+    for (String pair : pairs) {
+      String[] kv = pair.split("=");
+      accessMap.put(kv[0], kv[1]);
+    }
+  }
+
+  String getAuthToken() {
+    return accessMap.get("oauth_token").toString();
+  }
+
+  String getAuthTokenSecret() {
+    return accessMap.get("oauth_token_secret").toString();
+  }
+
+  Map getAccessMap() {
+    return accessMap;
+  }
 }

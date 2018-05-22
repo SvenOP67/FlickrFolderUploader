@@ -1,0 +1,24 @@
+out/
+bin/
+build/
+target/
+.classpath
+/.gradle/
+mycrontab
+.project
+.settings/
+.idea/
+.swagger-codegen/
+*.class
+*.iws
+*.iml
+*.ipr
+
+# Package Files #
+*.jar
+!/lib/*.jar
+
+# exclude jar for gradle wrapper
+!gradle/wrapper/*.jar
+!tools/**/gradle/wrapper/*.jar
+settings.json

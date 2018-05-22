@@ -1,10 +1,19 @@
 package oauthtest;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
+import java.util.Scanner;
 import java.util.logging.Logger;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.HttpClientBuilder;
 
 public class FlickrUpload {
 
@@ -16,13 +25,54 @@ public class FlickrUpload {
         new File(System.getProperty("user.home") + File.separator + ".flickr"))) {
       Properties prop = new Properties();
       prop.load(input);
-      OAuth auth = new OAuth(prop.getProperty("API_KEY") ,prop.getProperty("SIGNATURE_KEY") );
-      Logger.getGlobal().info(auth.genUrl(REQUEST_TOKEN_URL));
-      Logger.getGlobal().info(auth.genUrl(ACCESS_TOKEN_URL));
+      OAuth auth = new OAuth(prop.getProperty("API_KEY"), prop.getProperty("SIGNATURE_KEY"));
+      String url = auth.generateRequestTokenUrl(REQUEST_TOKEN_URL);
+      Logger.getGlobal().info(url);
+
+      String result = executeUrl(url);
+      auth.parseAndStoreResult(result);
+
+      // Open authorization link on flickr
+      String authLink =
+          "https://www.flickr.com/services/oauth/authorize?perms=delete&" + "oauth_token=" + auth
+              .getAuthToken();
+      Logger.getGlobal().info(authLink);
+
+      url = auth.generateAccessTokenUrl(ACCESS_TOKEN_URL, new Scanner(System.in).next());
+      Logger.getGlobal().info(url);
+
+      result = executeUrl(url);
+      auth.parseAndStoreResult(result);
+
+      HashMap<String, String> methodMap = new HashMap();
+      methodMap.put("method", "flickr.test.login");
+      methodMap.put("nojsoncallback", "1");
+      methodMap.put("format", "json");
+
+      url = auth.generateRestApiUrl("https://api.flickr.com/services/rest", methodMap);
+      Logger.getGlobal().info(url);
+
+      result = executeUrl(url);
+
+
     } catch (IOException e) {
       Logger.getGlobal().severe(e.getMessage());
     }
 
 
+  }
+
+  private static String executeUrl(String url) throws IOException {
+    HttpClient client = HttpClientBuilder.create().build();
+    HttpGet get = new HttpGet(url);
+
+    HttpResponse response = client.execute(get);
+    Logger.getGlobal().info(Integer.toString(response.getStatusLine().getStatusCode()));
+
+    BufferedReader contentReader = new BufferedReader(
+        new InputStreamReader(response.getEntity().getContent()));
+    String result = contentReader.readLine();
+    Logger.getGlobal().info(result);
+    return result;
   }
 }
