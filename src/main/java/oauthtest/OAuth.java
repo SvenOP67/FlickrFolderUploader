@@ -76,7 +76,7 @@ class OAuth {
         REQUEST_VERB + "&" + oauthEncode(target) + "&" + oauthEncode(unencBaseString3.toString());
     Logger.getGlobal().info(url2Sign);
 
-    String signature = getSignature(signatureKey, url2Sign);
+    String signature = getSignature(secret, url2Sign);
     String signatureParam = "oauth_signature=" + oauthEncode(signature);
 
     return target + "?" + unencBaseString3 + "&" + signatureParam;
@@ -105,6 +105,18 @@ class OAuth {
     map.put("oauth_callback", oauthEncode(CALLBACK_TARGET));
 
     return generateTokenUrl(target, map, signatureKey);
+  }
+
+
+  String generateRestApiUrl(String target, HashMap<String, String> methodMap) {
+    TreeMap<String, String> map = getParameterMap();
+    map.put("oauth_token", oauthEncode(getAuthToken()));
+
+    for (Map.Entry<String, String> entry : methodMap.entrySet()) {
+      map.put(entry.getKey(), entry.getValue());
+    }
+
+    return generateTokenUrl(target, map, signatureKey + getAuthTokenSecret());
   }
 
 

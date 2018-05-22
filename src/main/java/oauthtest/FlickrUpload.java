@@ -5,6 +5,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.logging.Logger;
@@ -41,6 +43,17 @@ public class FlickrUpload {
 
       result = executeUrl(url);
       auth.parseAndStoreResult(result);
+
+      HashMap<String, String> methodMap = new HashMap();
+      methodMap.put("method", "flickr.test.login");
+      methodMap.put("nojsoncallback", "1");
+      methodMap.put("format", "json");
+
+      url = auth.generateRestApiUrl("https://api.flickr.com/services/rest", methodMap);
+      Logger.getGlobal().info(url);
+
+      result = executeUrl(url);
+
 
     } catch (IOException e) {
       Logger.getGlobal().severe(e.getMessage());
