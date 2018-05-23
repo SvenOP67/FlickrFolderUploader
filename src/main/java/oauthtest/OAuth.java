@@ -31,15 +31,6 @@ class OAuth {
     this.apiKey = apiKey;
     this.signatureKey = signatureKey;
 
-    String file = System.getProperty("user.home") + File.separator + "myfile.txt";
-    if(new File(file).exists()) {
-      try (FileReader reader = new FileReader(file)){
-        BufferedReader br = new BufferedReader(reader);
-        parseAndStoreResult(br.readLine());
-      } catch (IOException e) {
-        Logger.getGlobal().severe(e.getMessage());
-      }
-    }
   }
 
   private String oauthEncode(String input) {
@@ -152,5 +143,17 @@ class OAuth {
 
   Map getAccessMap() {
     return accessMap;
+  }
+
+  public void setAuthStoreFile(String authStoreFile) {
+    String file = authStoreFile;
+    if(new File(file).exists()) {
+      try (FileReader reader = new FileReader(file)){
+        BufferedReader br = new BufferedReader(reader);
+        parseAndStoreResult(br.readLine());
+      } catch (IOException e) {
+        Logger.getGlobal().severe(e.getMessage());
+      }
+    }
   }
 }
