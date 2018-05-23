@@ -56,7 +56,7 @@ public class FlickrUpload {
           result = executeUrl(url);
           auth.parseAndStoreResult(result);
 
-          storeAuthInFile(result, authStoreFile);
+          storeAuthInFile(result, file);
 
         }
         auth.setAuthStoreFile(file);
