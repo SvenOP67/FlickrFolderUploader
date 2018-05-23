@@ -145,10 +145,9 @@ class OAuth {
     return accessMap;
   }
 
-  public void setAuthStoreFile(String authStoreFile) {
-    String file = authStoreFile;
-    if(new File(file).exists()) {
-      try (FileReader reader = new FileReader(file)){
+  void setAuthStoreFile(String authStoreFile) {
+    if(new File(authStoreFile).exists()) {
+      try (FileReader reader = new FileReader(authStoreFile)){
         BufferedReader br = new BufferedReader(reader);
         parseAndStoreResult(br.readLine());
       } catch (IOException e) {
