@@ -28,7 +28,8 @@ public class FlickrUpload {
 
       String result = executeUrl(
           "https://api.flickr.com/services/rest/?method=flickr.people.findByUsername&api_key="
-              + prop.getProperty("API_KEY") + "&username=" + USERNAME + "&format=json&nojsoncallback=1");
+              + prop.getProperty("API_KEY") + "&username=" + USERNAME
+              + "&format=json&nojsoncallback=1");
       if (result.contains("\"stat\":\"ok\"")) {
         AccountInfo account = new ObjectMapper().readValue(result, AccountInfo.class);
         String authStoreFile = account.getUser().getNsid();
@@ -64,24 +65,11 @@ public class FlickrUpload {
         String info = String.format("Account information %s", auth.getAccessMap().toString());
         Logger.getGlobal().info(info);
 
-        HashMap<String, String> methodMap = new HashMap<>();
-        methodMap.put("nojsoncallback", "1");
-        methodMap.put("format", "json");
+        callRestService(auth, "flickr.test.login");
 
-        methodMap.put(REST_METHOD_PARAM, "flickr.test.login");
-        url = auth.generateRestApiUrl(methodMap);
-        Logger.getGlobal().info(url);
-        executeUrl(url);
+        callRestService(auth, "flickr.contacts.getList");
 
-        methodMap.put(REST_METHOD_PARAM, "flickr.contacts.getList");
-        url = auth.generateRestApiUrl(methodMap);
-        Logger.getGlobal().info(url);
-        executeUrl(url);
-
-        methodMap.put(REST_METHOD_PARAM, "flickr.favorites.getList");
-        url = auth.generateRestApiUrl(methodMap);
-        Logger.getGlobal().info(url);
-        executeUrl(url);
+        callRestService(auth, "flickr.favorites.getList");
 
       }
     } catch (IOException e) {
@@ -89,6 +77,19 @@ public class FlickrUpload {
     }
 
 
+  }
+
+  private static void callRestService(OAuth auth, String method)
+      throws IOException {
+    HashMap<String, String> methodMap = new HashMap<>();
+    methodMap.put("nojsoncallback", "1");
+    methodMap.put("format", "json");
+    methodMap.put(REST_METHOD_PARAM, method);
+
+    String url;
+    url = auth.generateRestApiUrl(methodMap);
+    Logger.getGlobal().info(url);
+    executeUrl(url);
   }
 
   private static void storeAuthInFile(String result, String authStoreFile) {
