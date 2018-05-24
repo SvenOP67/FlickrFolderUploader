@@ -1,23 +1,30 @@
 package oauthtest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.Properties;
 import java.util.Scanner;
+import java.util.logging.Logger;
 import oauthtest.account.AccountInfo;
+import oauthtest.contacts.ContactList;
+import oauthtest.favourites.FavouriteList;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
-
-import java.io.*;
-import java.util.Properties;
-import java.util.logging.Logger;
 
 public class FlickrUpload {
 
   private static final String USER_HOME = "user.home";
   private static final String USERNAME = "SvenOP67";
   private static final String REST_METHOD_PARAM = "method";
+  private static final String STAT_OK = "\"stat\":\"ok\"";
 
   public static void main(String[] args) {
     try (FileInputStream input = new FileInputStream(
@@ -30,7 +37,7 @@ public class FlickrUpload {
           "https://api.flickr.com/services/rest/?method=flickr.people.findByUsername&api_key="
               + prop.getProperty("API_KEY") + "&username=" + USERNAME
               + "&format=json&nojsoncallback=1");
-      if (result.contains("\"stat\":\"ok\"")) {
+      if (result.contains(STAT_OK)) {
         AccountInfo account = new ObjectMapper().readValue(result, AccountInfo.class);
         String authStoreFile = account.getUser().getNsid();
 
@@ -67,9 +74,17 @@ public class FlickrUpload {
 
         callRestService(auth, "flickr.test.login");
 
-        callRestService(auth, "flickr.contacts.getList");
+        String contacts = callRestService(auth, "flickr.contacts.getList");
+        if (contacts.contains(STAT_OK)) {
+          ContactList cl = new ObjectMapper().readValue(contacts, ContactList.class);
+          Logger.getGlobal().info(Integer.toString(cl.getContacts().getContact().size()));
+        }
 
-        callRestService(auth, "flickr.favorites.getList");
+        String favourites = callRestService(auth, "flickr.favorites.getList");
+        if (favourites.contains(STAT_OK)) {
+          FavouriteList cl = new ObjectMapper().readValue(favourites, FavouriteList.class);
+          Logger.getGlobal().info(Integer.toString(cl.getPhotos().getPhoto().size()));
+        }
 
       }
     } catch (IOException e) {
@@ -79,7 +94,7 @@ public class FlickrUpload {
 
   }
 
-  private static void callRestService(OAuth auth, String method)
+  private static String callRestService(OAuth auth, String method)
       throws IOException {
     HashMap<String, String> methodMap = new HashMap<>();
     methodMap.put("nojsoncallback", "1");
@@ -89,7 +104,7 @@ public class FlickrUpload {
     String url;
     url = auth.generateRestApiUrl(methodMap);
     Logger.getGlobal().info(url);
-    executeUrl(url);
+    return executeUrl(url);
   }
 
   private static void storeAuthInFile(String result, String authStoreFile) {
