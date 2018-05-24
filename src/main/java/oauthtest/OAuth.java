@@ -11,6 +11,14 @@ import java.util.TreeMap;
 import java.util.logging.Logger;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.StringBody;
+import org.apache.http.impl.client.HttpClientBuilder;
 
 class OAuth {
 
@@ -18,10 +26,13 @@ class OAuth {
   private static final String URL_OAUTH_ACCESS_TOKEN = "https://www.flickr.com/services/oauth/access_token";
   private static final String URL_OAUTH_REQUEST_TOKEN = "https://www.flickr.com/services/oauth/request_token";
   private static final String URL_SERVICES_REST = "https://api.flickr.com/services/rest";
+  private static final String URL_UPLOAD = "https://api.flickr.com/services/upload/";
+
   private String apiKey;
   private String signatureKey;
 
-  private static final String REQUEST_VERB = "GET";
+  private static final String REQUEST_VERB_GET = "GET";
+  private static final String REQUEST_VERB_POST = "POST";
   private static final String HMAC_ALGORITHM = "HMAC-SHA1";
   private static final String CALLBACK_TARGET = "oob";
 
@@ -78,7 +89,7 @@ class OAuth {
     }
 
     String url2Sign =
-        REQUEST_VERB + "&" + oauthEncode(target) + "&" + oauthEncode(unencBaseString3.toString());
+        REQUEST_VERB_GET + "&" + oauthEncode(target) + "&" + oauthEncode(unencBaseString3.toString());
     Logger.getGlobal().info(url2Sign);
 
     String signature = getSignature(secret, url2Sign);
@@ -154,5 +165,69 @@ class OAuth {
         Logger.getGlobal().severe(e.getMessage());
       }
     }
+  }
+
+  private String generateSignatureForUploadUrl(TreeMap<String, String> map, String secret) {
+
+    StringBuilder unencBaseString3 = new StringBuilder();
+    int i = 1;
+    for (Map.Entry<String, String> entry : map.entrySet()) {
+      unencBaseString3.append(entry.getKey());
+      unencBaseString3.append("=");
+      unencBaseString3.append(entry.getValue());
+      if (i < map.size()) {
+        unencBaseString3.append("&");
+      }
+      i++;
+    }
+
+    String url2Sign =
+        REQUEST_VERB_POST + "&" + oauthEncode(URL_UPLOAD) + "&" + oauthEncode(unencBaseString3.toString());
+    Logger.getGlobal().info(url2Sign);
+
+    return getSignature(secret, url2Sign);
+  }
+
+
+  public String uploadImage(String imageFilename) throws IOException {
+    TreeMap<String, String> map = getParameterMap();
+    map.put(OAUTH_TOKEN_PARAM, oauthEncode(getAuthToken()));
+
+    String signature = generateSignatureForUploadUrl(map, signatureKey + getAuthTokenSecret());
+    Logger.getGlobal().info(signature);
+
+    HttpClient client = HttpClientBuilder.create().build();
+    HttpPost httppost = new HttpPost(URL_UPLOAD);
+
+    HttpEntity reqEntity = MultipartEntityBuilder
+        .create()
+        .addPart("oauth_consumer_key", new StringBody(oauthEncode(apiKey)))
+        .addPart("oauth_nonce", new StringBody(String.valueOf(System.currentTimeMillis())))
+        .addPart("oauth_signature", new StringBody(signature))
+        .addPart("oauth_signature_method", new StringBody(HMAC_ALGORITHM))
+        .addPart("oauth_timestamp", new StringBody(String.valueOf(System.currentTimeMillis() / 1000)))
+        .addPart("oauth_token", new StringBody(oauthEncode(getAuthToken())))
+        .addPart("oauth_version", new StringBody(oauthEncode("1.0")))
+        .addBinaryBody("photo", new File(imageFilename), ContentType.create("image/jpeg"), imageFilename)
+        .build();
+
+    httppost.setEntity(reqEntity);
+
+    HttpResponse response = client.execute(httppost);
+    String statusCode = Integer.toString(response.getStatusLine().getStatusCode());
+    Logger.getGlobal().info(statusCode);
+
+    BufferedReader contentReader = new BufferedReader(
+        new InputStreamReader(response.getEntity().getContent()));
+
+    String line;
+    StringBuilder result = new StringBuilder();
+    while ((line = contentReader.readLine()) != null){
+      result.append(line);
+
+    }
+    Logger.getGlobal().info(result.toString());
+    return result.toString();
+
   }
 }

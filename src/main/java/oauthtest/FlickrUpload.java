@@ -14,9 +14,15 @@ import java.util.logging.Logger;
 import oauthtest.account.AccountInfo;
 import oauthtest.contacts.ContactList;
 import oauthtest.favourites.FavouriteList;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
+import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.HttpClientBuilder;
 
 public class FlickrUpload {
@@ -69,6 +75,8 @@ public class FlickrUpload {
         }
         auth.setAuthStoreFile(file);
 
+        auth.uploadImage("G:\\Eigene Bilder\\zebra_etosha.jpg");
+/*
         String info = String.format("Account information %s", auth.getAccessMap().toString());
         Logger.getGlobal().info(info);
 
@@ -85,7 +93,7 @@ public class FlickrUpload {
           FavouriteList cl = new ObjectMapper().readValue(favourites, FavouriteList.class);
           Logger.getGlobal().info(Integer.toString(cl.getPhotos().getPhoto().size()));
         }
-
+*/
       }
     } catch (IOException e) {
       Logger.getGlobal().severe(e.getMessage());
@@ -93,6 +101,7 @@ public class FlickrUpload {
 
 
   }
+
 
   private static String callRestService(OAuth auth, String method)
       throws IOException {
