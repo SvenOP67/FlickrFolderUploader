@@ -2,6 +2,7 @@ package oauthtest;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -11,24 +12,29 @@ import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
 import java.util.logging.Logger;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.xpath.XPath;
+import javax.xml.xpath.XPathConstants;
+import javax.xml.xpath.XPathExpressionException;
+import javax.xml.xpath.XPathFactory;
 import oauthtest.account.AccountInfo;
-import oauthtest.contacts.ContactList;
-import oauthtest.favourites.FavouriteList;
-import org.apache.http.HttpEntity;
+import oauthtest.upload.UploadResponse;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.entity.mime.content.FileBody;
-import org.apache.http.entity.mime.content.StringBody;
 import org.apache.http.impl.client.HttpClientBuilder;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.SAXException;
 
 public class FlickrUpload {
 
   private static final String USER_HOME = "user.home";
-  private static final String USERNAME = "SvenOP67";
+  private static final String USERNAME = "TheJetCowboy67";
   private static final String REST_METHOD_PARAM = "method";
   private static final String STAT_OK = "\"stat\":\"ok\"";
 
@@ -75,7 +81,12 @@ public class FlickrUpload {
         }
         auth.setAuthStoreFile(file);
 
-        auth.uploadImage("G:\\Eigene Bilder\\zebra_etosha.jpg");
+        String uploadResult = auth.uploadImage("G:\\Eigene Bilder\\zebra_etosha.jpg");
+        UploadResponse uploadResponse = parseUploadResult(uploadResult);
+        if (uploadResponse != null && "ok".equals(uploadResponse.getStat())) {
+          Logger.getGlobal().info("PhotoId " + uploadResponse.getPhotoid());
+        }
+
 /*
         String info = String.format("Account information %s", auth.getAccessMap().toString());
         Logger.getGlobal().info(info);
@@ -100,6 +111,38 @@ public class FlickrUpload {
     }
 
 
+  }
+
+  private static UploadResponse parseUploadResult(String uploadResult) throws IOException {
+    UploadResponse uploadResponse = null;
+    if (uploadResult.contains("stat=\"ok\"")) {
+      DocumentBuilderFactory dbFactory = DocumentBuilderFactory.newInstance();
+      DocumentBuilder dBuilder;
+      try {
+        dBuilder = dbFactory.newDocumentBuilder();
+        ByteArrayInputStream bais = new ByteArrayInputStream(
+            uploadResult.getBytes("UTF-8"));
+        Document doc = dBuilder.parse(bais);
+        XPath xPath = XPathFactory.newInstance().newXPath();
+        String expression = "/rsp";
+        NodeList nodeList = (NodeList) xPath.compile(expression).evaluate(
+            doc, XPathConstants.NODESET);
+
+        Node nNode = nodeList.item(0);
+        if (nNode.getNodeType() == Node.ELEMENT_NODE) {
+          Element eElement = (Element) nNode;
+          uploadResponse = new UploadResponse(eElement
+              .getElementsByTagName("photoid")
+              .item(0)
+              .getTextContent(), eElement.getAttribute("stat"));
+        }
+
+      } catch (ParserConfigurationException | SAXException | XPathExpressionException e) {
+        Logger.getGlobal().severe(e.getMessage());
+      }
+
+    }
+    return uploadResponse;
   }
 
 

@@ -22,11 +22,14 @@ import org.apache.http.impl.client.HttpClientBuilder;
 
 class OAuth {
 
-  private static final String OAUTH_TOKEN_PARAM = "oauth_token";
   private static final String URL_OAUTH_ACCESS_TOKEN = "https://www.flickr.com/services/oauth/access_token";
   private static final String URL_OAUTH_REQUEST_TOKEN = "https://www.flickr.com/services/oauth/request_token";
   private static final String URL_SERVICES_REST = "https://api.flickr.com/services/rest";
   private static final String URL_UPLOAD = "https://api.flickr.com/services/upload/";
+
+  private static final String OAUTH_TOKEN_PARAM = "oauth_token";
+  private static final String OAUTH_NONCE = "oauth_nonce";
+  private static final String OAUTH_TIMESTAMP = "oauth_timestamp";
 
   private String apiKey;
   private String signatureKey;
@@ -89,7 +92,8 @@ class OAuth {
     }
 
     String url2Sign =
-        REQUEST_VERB_GET + "&" + oauthEncode(target) + "&" + oauthEncode(unencBaseString3.toString());
+        REQUEST_VERB_GET + "&" + oauthEncode(target) + "&" + oauthEncode(
+            unencBaseString3.toString());
     Logger.getGlobal().info(url2Sign);
 
     String signature = getSignature(secret, url2Sign);
@@ -101,14 +105,14 @@ class OAuth {
   private TreeMap<String, String> getParameterMap() {
     TreeMap<String, String> map = new TreeMap<>();
     map.put("oauth_consumer_key", apiKey);
-    map.put("oauth_nonce", String.valueOf(System.currentTimeMillis()));
+    map.put(OAUTH_NONCE, String.valueOf(System.currentTimeMillis()));
     map.put("oauth_signature_method", HMAC_ALGORITHM);
-    map.put("oauth_timestamp", String.valueOf(System.currentTimeMillis() / 1000));
+    map.put(OAUTH_TIMESTAMP, String.valueOf(System.currentTimeMillis() / 1000));
     map.put("oauth_version", "1.0");
     return map;
   }
 
-  String generateAccessTokenUrl( String verifier) {
+  String generateAccessTokenUrl(String verifier) {
     TreeMap<String, String> map = getParameterMap();
     map.put(OAUTH_TOKEN_PARAM, oauthEncode(getAuthToken()));
     map.put("oauth_verifier", oauthEncode(verifier));
@@ -124,7 +128,7 @@ class OAuth {
   }
 
 
-  String generateRestApiUrl( HashMap<String, String> methodMap) {
+  String generateRestApiUrl(HashMap<String, String> methodMap) {
     TreeMap<String, String> map = getParameterMap();
     map.put(OAUTH_TOKEN_PARAM, oauthEncode(getAuthToken()));
 
@@ -157,8 +161,8 @@ class OAuth {
   }
 
   void setAuthStoreFile(String authStoreFile) {
-    if(new File(authStoreFile).exists()) {
-      try (FileReader reader = new FileReader(authStoreFile)){
+    if (new File(authStoreFile).exists()) {
+      try (FileReader reader = new FileReader(authStoreFile)) {
         BufferedReader br = new BufferedReader(reader);
         parseAndStoreResult(br.readLine());
       } catch (IOException e) {
@@ -182,33 +186,34 @@ class OAuth {
     }
 
     String url2Sign =
-        REQUEST_VERB_POST + "&" + oauthEncode(URL_UPLOAD) + "&" + oauthEncode(unencBaseString3.toString());
+        REQUEST_VERB_POST + "&" + oauthEncode(URL_UPLOAD) + "&" + oauthEncode(
+            unencBaseString3.toString());
     Logger.getGlobal().info(url2Sign);
 
     return getSignature(secret, url2Sign);
   }
 
 
-  public String uploadImage(String imageFilename) throws IOException {
+  String uploadImage(String imageFilename) throws IOException {
     TreeMap<String, String> map = getParameterMap();
     map.put(OAUTH_TOKEN_PARAM, oauthEncode(getAuthToken()));
 
     String signature = generateSignatureForUploadUrl(map, signatureKey + getAuthTokenSecret());
-    Logger.getGlobal().info(signature);
 
     HttpClient client = HttpClientBuilder.create().build();
     HttpPost httppost = new HttpPost(URL_UPLOAD);
 
     HttpEntity reqEntity = MultipartEntityBuilder
         .create()
-        .addPart("oauth_consumer_key", new StringBody(oauthEncode(apiKey)))
-        .addPart("oauth_nonce", new StringBody(String.valueOf(System.currentTimeMillis())))
-        .addPart("oauth_signature", new StringBody(signature))
-        .addPart("oauth_signature_method", new StringBody(HMAC_ALGORITHM))
-        .addPart("oauth_timestamp", new StringBody(String.valueOf(System.currentTimeMillis() / 1000)))
-        .addPart("oauth_token", new StringBody(oauthEncode(getAuthToken())))
-        .addPart("oauth_version", new StringBody(oauthEncode("1.0")))
-        .addBinaryBody("photo", new File(imageFilename), ContentType.create("image/jpeg"), imageFilename)
+        .addPart("oauth_consumer_key", new StringBody(oauthEncode(apiKey), ContentType.DEFAULT_TEXT))
+        .addPart(OAUTH_NONCE, new StringBody(map.get(OAUTH_NONCE), ContentType.DEFAULT_TEXT))
+        .addPart("oauth_signature", new StringBody(signature, ContentType.DEFAULT_TEXT))
+        .addPart("oauth_signature_method", new StringBody(HMAC_ALGORITHM, ContentType.DEFAULT_TEXT))
+        .addPart(OAUTH_TIMESTAMP, new StringBody(map.get(OAUTH_TIMESTAMP), ContentType.DEFAULT_TEXT))
+        .addPart(OAUTH_TOKEN_PARAM, new StringBody(oauthEncode(getAuthToken()), ContentType.DEFAULT_TEXT))
+        .addPart("oauth_version", new StringBody(oauthEncode("1.0"), ContentType.DEFAULT_TEXT))
+        .addBinaryBody("photo", new File(imageFilename), ContentType.create("image/jpeg"),
+            imageFilename)
         .build();
 
     httppost.setEntity(reqEntity);
@@ -222,7 +227,7 @@ class OAuth {
 
     String line;
     StringBuilder result = new StringBuilder();
-    while ((line = contentReader.readLine()) != null){
+    while ((line = contentReader.readLine()) != null) {
       result.append(line);
 
     }
