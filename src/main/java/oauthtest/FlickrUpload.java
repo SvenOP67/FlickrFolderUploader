@@ -80,6 +80,7 @@ public class FlickrUpload {
 
         }
         auth.setAuthStoreFile(file);
+        
 
         String uploadResult = auth.uploadImage("G:\\Eigene Bilder\\zebra_etosha.jpg");
         UploadResponse uploadResponse = parseUploadResult(uploadResult);
